@@ -19,6 +19,7 @@
   "dependencies": {
     "apn": "^1.7.5",
     "events": "^1.1.0",
+    "mariasql": "^0.2.5",
     "request": "^2.69.0"
   }
 }
