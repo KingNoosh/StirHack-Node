@@ -33,10 +33,13 @@ var apn           = require('apn'),
                     apiToken = JSON.parse(body).data.token;
                     eventEmitter.on("requested", function() {
                         if (counter === apiList.length) {
-                            console.log(result);
-                            var failCounter = 0;
+                            var failCounter = 0,
+                                failArray   = [];
                             for (var i = result.data.length - 1; i >= 0; i--) {
-                                if (result.data[i].alive === false) { failCounter++ }
+                                if (result.data[i].alive === false) {
+                                    failCounter++;
+                                    failArray.push(result.data[i]);
+                                }
                             }
                             result.data = JSON.stringify(result.data);
                             c.query(prep({
@@ -51,13 +54,23 @@ var apn           = require('apn'),
                             });
                             if (failCounter && triggered === false) {
                                 triggered = true;
-                                var word = failCounter > 1 ? "API's are" : "API is";
-                                note.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
-                                note.badge = failCounter;
-                                note.alert = failCounter + " " + word + " down";
-                                note.payload = {'messageFrom': 'Caroline'};
+                                if (failCounter < 5) {
+                                    for (var i = failArray.length - 1; i >= 0; i--) {
+                                        var fail = failArray[i];
+                                        note.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
+                                        note.badge = failCounter;
+                                        note.alert = fail.name + " is down";
 
-                                apnConnection.pushNotification(note, myDevice);
+                                        apnConnection.pushNotification(note, myDevice);
+                                    }
+                                } else {
+                                    var word = failCounter > 1 ? "API's are" : "API is";
+                                    note.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
+                                    note.badge = failCounter;
+                                    note.alert = failCounter + " API's are down";
+
+                                    apnConnection.pushNotification(note, myDevice);
+                                }
                             }
                             if (!failCounter && triggered === true) {
                                 triggered = false;
@@ -114,7 +127,7 @@ var apn           = require('apn'),
             }
         });
     };
-
+eventEmitter.setMaxListeners(2);
 eventEmitter.on("completed", function() {
     setTimeout(function() { start(); }, 10000);
 });
