@@ -19,8 +19,9 @@ var apn           = require('apn'),
     counter       = 0,
     result        = undefined,
     triggered     = false,
+    apiList       = undefined,
     start = function() {
-        var apiList = undefined;
+        apiList = undefined;
         result = {
             timestamp : Math.floor(Date.now() / 1000),
             data      : []
@@ -31,60 +32,6 @@ var apn           = require('apn'),
                 apiList = data;
                 request("http://dogfish.tech/api/login?user=untitled1&password=111", function(error, response, body) {
                     apiToken = JSON.parse(body).data.token;
-                    eventEmitter.on("requested", function() {
-                        if (counter === apiList.length) {
-                            var failCounter = 0,
-                                failArray   = [];
-                            for (var i = result.data.length - 1; i >= 0; i--) {
-                                if (result.data[i].alive === false) {
-                                    failCounter++;
-                                    failArray.push(result.data[i]);
-                                }
-                            }
-                            result.data = JSON.stringify(result.data);
-                            c.query(prep({
-                                id: result.id,
-                                timestamp: result.timestamp,
-                                data: result.data
-                            }), function(err, rows) {
-                                if (err) {
-                                    throw err;
-                                }
-                                console.dir(rows);
-                            });
-                            if (failCounter && triggered === false) {
-                                triggered = true;
-                                if (failCounter < 5) {
-                                    for (var i = failArray.length - 1; i >= 0; i--) {
-                                        var fail = failArray[i];
-                                        note.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
-                                        note.badge = failCounter;
-                                        note.alert = fail.name + " is down";
-
-                                        apnConnection.pushNotification(note, myDevice);
-                                    }
-                                } else {
-                                    var word = failCounter > 1 ? "API's are" : "API is";
-                                    note.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
-                                    note.badge = failCounter;
-                                    note.alert = failCounter + " API's are down";
-
-                                    apnConnection.pushNotification(note, myDevice);
-                                }
-                            }
-                            if (!failCounter && triggered === true) {
-                                triggered = false;
-                                note.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
-                                note.badge = 0;
-                                note.alert = "Normal service has been restored";
-                                note.payload = {'messageFrom': 'Caroline'};
-
-                                apnConnection.pushNotification(note, myDevice);
-                            }
-                            counter = 0;
-                            eventEmitter.emit('completed');
-                        }
-                    });
 
                     for(var i = apiList.length - 1; i >= 0; i--) {
                         var api = apiList[i],
@@ -127,7 +74,66 @@ var apn           = require('apn'),
             }
         });
     };
-eventEmitter.setMaxListeners(2);
+eventEmitter.on("requested", function() {
+    if (counter === apiList.length) {
+        var failCounter = 0,
+            failArray   = [];
+        console.log(result);
+        for (var i = result.data.length - 1; i >= 0; i--) {
+            if (result.data[i].alive === false) {
+                failCounter++;
+                failArray.push(result.data[i]);
+            }
+        }
+        result.data = JSON.stringify(result.data);
+        c.query(prep({
+            id: result.id,
+            timestamp: result.timestamp,
+            data: result.data
+        }), function(err, rows) {
+            if (err) {
+                throw err;
+            }
+            console.dir(rows);
+        });
+        if (true) {
+            if (failCounter && triggered === false) {
+                triggered = true;
+                if (failCounter < 5) {
+                    for (var i = failArray.length - 1; i >= 0; i--) {
+                        var fail = failArray[i];
+                        console.log(fail);
+                        note.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
+                        note.badge = failCounter;
+                        note.alert = fail.name + " is down";
+                        note.payload = {'messageFrom': 'Caroline'};
+
+                        apnConnection.pushNotification(note, myDevice);
+                    }
+                } else {
+                    var word = failCounter > 1 ? "API's are" : "API is";
+                    note.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
+                    note.badge = failCounter;
+                    note.alert = failCounter + " API's are down";
+                    note.payload = {'messageFrom': 'Caroline'};
+
+                    apnConnection.pushNotification(note, myDevice);
+                }
+            }
+            if (!failCounter && triggered === true) {
+                triggered = false;
+                note.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
+                note.badge = 0;
+                note.alert = "Normal service has been restored";
+                note.payload = {'messageFrom': 'Caroline'};
+
+                apnConnection.pushNotification(note, myDevice);
+            }
+        }
+        counter = 0;
+        eventEmitter.emit('completed');
+    }
+});
 eventEmitter.on("completed", function() {
     setTimeout(function() { start(); }, 10000);
 });
