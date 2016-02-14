@@ -15,7 +15,7 @@ var apn           = require('apn'),
     apnConnection = new apn.Connection(options),
     myDevice      = new apn.Device(token),
     note          = new apn.Notification(),
-    eventEmitter  = new events.EventEmitter(),
+    heart         = new events.EventEmitter(),
     counter       = 0,
     result        = undefined,
     triggered     = false,
@@ -65,14 +65,14 @@ var apn           = require('apn'),
                                     obj.code = statusCode;
                                     result.data.push(obj);
                                     counter++;
-                                    eventEmitter.emit('requested');
+                                    heart.emit('requested');
                                 });
                             })(api, url);
                         };
                     });
                 } catch(e) {
                     console.log(e);
-                    eventEmitter.emit('completed');
+                    heart.emit('love');
                 }
 
             } else {
@@ -80,7 +80,7 @@ var apn           = require('apn'),
             }
         });
     };
-eventEmitter.on("requested", function() {
+heart.on("requested", function() {
     if (counter === apiList.length) {
         var failCounter = 0,
             failArray   = [];
@@ -102,6 +102,7 @@ eventEmitter.on("requested", function() {
             }
             console.dir(rows);
         });
+        result.data = JSON.parse(result.data);
         if (failCounter && triggered === false) {
             triggered = true;
             if (failCounter < 5) {
@@ -111,7 +112,7 @@ eventEmitter.on("requested", function() {
                     note.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
                     note.badge = failCounter;
                     note.alert = fail.name + " is down";
-                    note.payload = {'messageFrom': 'Caroline'};
+                    note.payload = result;
 
                     apnConnection.pushNotification(note, myDevice);
                 }
@@ -120,7 +121,7 @@ eventEmitter.on("requested", function() {
                 note.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
                 note.badge = failCounter;
                 note.alert = failCounter + " API's are down";
-                note.payload = {'messageFrom': 'Caroline'};
+                note.payload = result;
 
                 apnConnection.pushNotification(note, myDevice);
             }
@@ -130,15 +131,15 @@ eventEmitter.on("requested", function() {
             note.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
             note.badge = 0;
             note.alert = "Normal service has been restored";
-            note.payload = {'messageFrom': 'Caroline'};
+            note.payload = result;
 
             apnConnection.pushNotification(note, myDevice);
         }
         counter = 0;
-        eventEmitter.emit('completed');
+        heart.emit('love');
     }
 });
-eventEmitter.on("completed", function() {
+heart.on("love", function() {
     setTimeout(function() { start(); }, 10000);
 });
 start();
