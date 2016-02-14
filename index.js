@@ -96,39 +96,37 @@ eventEmitter.on("requested", function() {
             }
             console.dir(rows);
         });
-        if (true) {
-            if (failCounter && triggered === false) {
-                triggered = true;
-                if (failCounter < 5) {
-                    for (var i = failArray.length - 1; i >= 0; i--) {
-                        var fail = failArray[i];
-                        console.log(fail);
-                        note.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
-                        note.badge = failCounter;
-                        note.alert = fail.name + " is down";
-                        note.payload = {'messageFrom': 'Caroline'};
-
-                        apnConnection.pushNotification(note, myDevice);
-                    }
-                } else {
-                    var word = failCounter > 1 ? "API's are" : "API is";
+        if (failCounter && triggered === false) {
+            triggered = true;
+            if (failCounter < 5) {
+                for (var i = failArray.length - 1; i >= 0; i--) {
+                    var fail = failArray[i];
+                    console.log(fail);
                     note.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
                     note.badge = failCounter;
-                    note.alert = failCounter + " API's are down";
+                    note.alert = fail.name + " is down";
                     note.payload = {'messageFrom': 'Caroline'};
 
                     apnConnection.pushNotification(note, myDevice);
                 }
-            }
-            if (!failCounter && triggered === true) {
-                triggered = false;
+            } else {
+                var word = failCounter > 1 ? "API's are" : "API is";
                 note.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
-                note.badge = 0;
-                note.alert = "Normal service has been restored";
+                note.badge = failCounter;
+                note.alert = failCounter + " API's are down";
                 note.payload = {'messageFrom': 'Caroline'};
 
                 apnConnection.pushNotification(note, myDevice);
             }
+        }
+        if (!failCounter && triggered === true) {
+            triggered = false;
+            note.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
+            note.badge = 0;
+            note.alert = "Normal service has been restored";
+            note.payload = {'messageFrom': 'Caroline'};
+
+            apnConnection.pushNotification(note, myDevice);
         }
         counter = 0;
         eventEmitter.emit('completed');
