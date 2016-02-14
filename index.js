@@ -28,46 +28,51 @@ var apn           = require('apn'),
         };
         request('http://dogfish.tech/api/apis/', function (error, response, body) {
             if (!error && response.statusCode == 200) {
-                var data = JSON.parse(body).data;
-                apiList = data;
-                request("http://dogfish.tech/api/login?user=untitled1&password=111", function(error, response, body) {
-                    apiToken = JSON.parse(body).data.token;
+                var data;
+                try {
+                    data = JSON.parse(body).data;
+                    apiList = data;
+                    request("http://dogfish.tech/api/login?user=untitled1&password=111", function(error, response, body) {
+                        apiToken = JSON.parse(body).data.token;
 
-                    for(var i = apiList.length - 1; i >= 0; i--) {
-                        var api = apiList[i],
-                            url = 'http://dogfish.tech/api/'+ api.endpoint +'/' + api.params;
+                        for(var i = apiList.length - 1; i >= 0; i--) {
+                            var api = apiList[i],
+                                url = 'http://dogfish.tech/api/'+ api.endpoint +'/' + api.params;
 
-                            if (api.access === "auth") {
-                                url += "&auth=111";
-                            }
-                            if (api.access === "token") {
-                                url += "&token=" + apiToken;
-                            }
-                        (function(api, url) {
-                            request(url, function(error, response, body) {
-                                var statusCode = response.statusCode,
-                                    alive      = false,
-                                    obj        = {};
-                                obj.name = api.name;
-                                if (statusCode === (200 || 201)) {
-                                    try {
-                                        statusCode = JSON.parse(body).headers.response_code;
-                                    } catch(e) {
-                                        console.log(e);
+                                if (api.access === "auth") {
+                                    url += "&auth=111";
+                                }
+                                if (api.access === "token") {
+                                    url += "&token=" + apiToken;
+                                }
+                            (function(api, url) {
+                                request(url, function(error, response, body) {
+                                    var statusCode = response.statusCode,
+                                        alive      = false,
+                                        obj        = {};
+                                    obj.name = api.name;
+                                    if (statusCode === (200 || 201)) {
+                                        try {
+                                            statusCode = JSON.parse(body).headers.response_code;
+                                        } catch(e) {
+                                            console.log(e);
+                                        }
                                     }
-                                }
-                                if (statusCode === (200 || 201)) {
-                                    alive = true;
-                                }
-                                obj.alive = alive;
-                                obj.code = statusCode;
-                                result.data.push(obj);
-                                counter++;
-                                eventEmitter.emit('requested');
-                            });
-                        })(api, url);
-                    };
-                });
+                                    if (statusCode === (200 || 201)) {
+                                        alive = true;
+                                    }
+                                    obj.alive = alive;
+                                    obj.code = statusCode;
+                                    result.data.push(obj);
+                                    counter++;
+                                    eventEmitter.emit('requested');
+                                });
+                            })(api, url);
+                        };
+                    });
+                } catch(e) {
+                    console.log(e);
+                }
 
             } else {
                 Console.log("FAILED!");
