@@ -72,6 +72,7 @@ var apn           = require('apn'),
                     });
                 } catch(e) {
                     console.log(e);
+                    eventEmitter.emit('completed');
                 }
 
             } else {
